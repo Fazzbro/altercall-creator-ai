@@ -1,0 +1,6 @@
+{
+  "name": "Instagram Creative Partner",
+  "description": "An elite social media strategist and algorithm expert that transforms Malayalam/Manglish content ideas into viral-ready Instagram content plans.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
