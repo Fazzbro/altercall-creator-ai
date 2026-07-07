@@ -209,21 +209,28 @@ app.post("/api/analyze-video", upload.single("video"), async (req, res) => {
       console.warn("Failed to delete temp file:", e);
     }
 
+    // Set headers and start responding to keep connection alive
+    res.setHeader("Content-Type", "application/json");
+    res.flushHeaders();
+    res.write('{\n');
+
     // Wait for video processing
     console.log("Waiting for video processing...");
     while (uploadedFile.state === 'PROCESSING') {
+      res.write(' "processing": true,\n');
       await new Promise((resolve) => setTimeout(resolve, 2000));
       uploadedFile = await ai.files.get({ name: uploadedFile.name });
     }
 
     if (uploadedFile.state === 'FAILED') {
-      throw new Error("Video processing failed on Gemini servers.");
+      res.write(` "error": "Video processing failed on Gemini servers."\n}`);
+      return res.end();
     }
 
     console.log("Video processed, generating caption...");
     
     // Generate content
-    const response = await ai.models.generateContent({
+    const response = await ai.models.generateContentStream({
       model: "gemini-3.5-flash",
       contents: [
         {
@@ -247,13 +254,25 @@ app.post("/api/analyze-video", upload.single("video"), async (req, res) => {
       }
     });
 
-    const parsedResponse = JSON.parse(response.text || "{}");
-    return res.json(parsedResponse);
+    let fullJson = "";
+    for await (const chunk of response) {
+      fullJson += chunk.text;
+      // write a space to keep connection alive during generation
+      res.write(" ");
+    }
+
+    res.write(`"result": ${fullJson || "{}"}\n}`);
+    res.end();
   } catch (error: any) {
     console.error("Error analyzing video:", error);
-    return res.status(500).json({
-      error: error.message || "An error occurred during video analysis.",
-    });
+    if (!res.headersSent) {
+      return res.status(500).json({
+        error: error.message || "An error occurred during video analysis.",
+      });
+    } else {
+      res.write(`"error": ${JSON.stringify(error.message || "An error occurred")}\n}`);
+      res.end();
+    }
   }
 });
 

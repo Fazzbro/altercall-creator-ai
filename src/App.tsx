@@ -270,7 +270,10 @@ export default function App() {
       }
 
       const data = await response.json();
-      setVideoAnalysis(data);
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      setVideoAnalysis(data.result || data);
     } catch (err: any) {
       console.error("Video analysis error", err);
       setError(err.message || "An unexpected error occurred during video analysis.");
@@ -542,6 +545,34 @@ export default function App() {
               ))}
             </div>
           </div>
+
+          {/* Saved Drafts */}
+          {savedPlans.length > 0 && (
+            <div className="pt-6 border-t border-white/5 space-y-3">
+              <span className="text-[10px] uppercase font-mono tracking-widest text-[#ff4f00]">Saved Drafts</span>
+              <div className="flex flex-col gap-3 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+                {savedPlans.map((saved) => (
+                  <div key={saved.id} className="group relative bg-white/[0.02] border border-white/5 rounded-xl p-4 hover:bg-white/[0.05] transition-colors cursor-pointer" onClick={() => handleSelectSaved(saved)}>
+                    <div className="flex justify-between items-start mb-2">
+                      <span className="text-xs text-zinc-500 font-mono">{saved.timestamp}</span>
+                      <div className="flex items-center gap-2">
+                        <button onClick={(e) => handleToggleFavorite(saved.id, e)} className="text-zinc-500 hover:text-[#ff4f00] transition">
+                          <Star className={`w-3.5 h-3.5 ${saved.isFavorite ? "fill-[#ff4f00] text-[#ff4f00]" : ""}`} />
+                        </button>
+                        <button onClick={(e) => handleDeleteSaved(saved.id, e)} className="text-zinc-500 hover:text-red-400 transition opacity-0 group-hover:opacity-100">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                    <p className="text-sm text-zinc-300 line-clamp-2 leading-relaxed">{saved.idea}</p>
+                    <div className="mt-3 flex items-center gap-2">
+                      <span className="px-2 py-1 bg-white/5 border border-white/10 rounded-md text-[10px] font-medium text-zinc-400">{saved.vibe}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
         </section>
 
